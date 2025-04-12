@@ -25,36 +25,43 @@ export default function PokemonOverview() {
   const [loading, setLoading] = useState(true);
   const [selectedType, setSelectedType] = useState<string>("");
   const [types, setTypes] = useState<string[]>([]);
+  const [nextUrl, setNextUrl] = useState<string | null>("https://pokeapi.co/api/v2/pokemon?offset=0&limit=25");
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+
+  const loadMorePokemons = async () => {
+    if(!nextUrl) return;
+    setIsFetchingMore(true);
+    try {
+      const response = await fetch(nextUrl);
+      const data = await response.json();
+
+      const detailedPokemons: Pokemon[] = await Promise.all(
+        data.results.map(async (pokemon: { url: string }) => {
+          const response = await fetch(pokemon.url);
+          return await response.json();
+        })
+      );
+
+      setPokemons((previous) => [...previous, ...detailedPokemons]);
+      setNextUrl(data.next);
+
+      const updatedTypes = new Set(types);
+      detailedPokemons.forEach((pokemon) => {
+      pokemon.types.forEach((t) => updatedTypes.add(t.type.name));
+    });
+    setTypes([...updatedTypes]);
+
+    } catch (err) {
+      console.error("Failed to fetch more pokemons", err);
+    }
+    
+    setIsFetchingMore(false);
+  };
 
   useEffect(() => {
-    const fetchPokemons = async () => {
-      try {
-        const response = await fetch("https://pokeapi.co/api/v2/pokemon?limit=50");
-        const data = await response.json();
-
-        const detailedPokemons: Pokemon[] = await Promise.all(
-          data.results.map(async (pokemon: { url: string }) => {
-            const response = await fetch(pokemon.url);
-            return await response.json();
-          })
-        );
-
-        setPokemons(detailedPokemons);
-        setLoading(false);
-
-        const uniqueTypes = new Set<string>();
-        detailedPokemons.forEach((pokemon) => {
-          pokemon.types.forEach((type) => { uniqueTypes.add(type.type.name); });
-        });
-
-        setTypes([...uniqueTypes]);
-
-      } catch (err) {
-        console.error("Failed to fetch pokemons", err);
-      }
-    };
-
-    fetchPokemons();
+    if(pokemons.length === 0 && nextUrl) {
+      loadMorePokemons().then(() => setLoading(false));
+    }
   }, []);
 
   const visiblePokemons = selectedType ? 
@@ -81,5 +88,19 @@ export default function PokemonOverview() {
             ></PokemonCard>
         ))}
       </div>
-  </div>
-)}
+
+      {nextUrl && (
+        <div className="flex justify-center mt-6">
+          {isFetchingMore ? <Spinner /> : 
+          <button
+            onClick={loadMorePokemons}
+            className="px-6 py-2 rounded-md border-4 border-gray-800 text-gray-800 hover:bg-gray-800 transition hover:text-white"
+            disabled={isFetchingMore}
+          >
+            {"Load More"}
+          </button>}
+        </div>
+      )}
+    </div>
+  )
+}
