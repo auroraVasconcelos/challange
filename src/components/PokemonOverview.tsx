@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import Link from "next/link";
+import React, { useEffect, useState, useRef } from "react";
 import Spinner from "./Spinner";
 import PokemonCard from "./PokemonCard";
 import TypeFilter from "./TypeFilter";
@@ -27,6 +26,7 @@ export default function PokemonOverview() {
   const [types, setTypes] = useState<string[]>([]);
   const [nextUrl, setNextUrl] = useState<string | null>("https://pokeapi.co/api/v2/pokemon?offset=0&limit=25");
   const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const loadMorePokemons = async () => {
     if(!nextUrl) return;
@@ -59,10 +59,29 @@ export default function PokemonOverview() {
   };
 
   useEffect(() => {
-    if(pokemons.length === 0 && nextUrl) {
+    if (pokemons.length === 0 && nextUrl) {
       loadMorePokemons().then(() => setLoading(false));
     }
   }, []);
+
+  useEffect(() => {
+    if(!sentinelRef.current || !nextUrl) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !isFetchingMore) {
+        loadMorePokemons();
+      }
+    }, {threshold: 1.0});
+
+    observer.observe(sentinelRef.current);
+
+    return () => {
+      if (sentinelRef.current) {
+        observer.unobserve(sentinelRef.current);
+      }
+    };
+  }, [sentinelRef.current, isFetchingMore, nextUrl]);
+
 
   const visiblePokemons = selectedType ? 
     pokemons.filter((pokemon) => pokemon.types.some((type) => type.type.name === selectedType)) : 
@@ -90,17 +109,10 @@ export default function PokemonOverview() {
       </div>
 
       {nextUrl && (
-        <div className="flex justify-center mt-6">
-          {isFetchingMore ? <Spinner /> : 
-          <button
-            onClick={loadMorePokemons}
-            className="px-6 py-2 rounded-md border-4 border-gray-800 text-gray-800 hover:bg-gray-800 transition hover:text-white"
-            disabled={isFetchingMore}
-          >
-            {"Load More"}
-          </button>}
+        <div ref={sentinelRef} className="w-full py-8 flex justify-center">
+          <div className="animate-spin h-6 w-6 border-2 border-t-black border-b-black rounded-full" />
         </div>
-      )}
+    )}
     </div>
   )
 }
