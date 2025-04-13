@@ -100,7 +100,7 @@ export default function PokemonOverview() {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {visiblePokemons.map((pokemon) => (
           <PokemonCard
-            key={pokemon.id}
+            key={`${pokemon.name}-${pokemon.id}`}
             id={pokemon.id}
             name={pokemon.name}
             image={pokemon.sprites.other["official-artwork"].front_default || pokemon.sprites.front_default}
