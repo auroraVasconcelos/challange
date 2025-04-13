@@ -42,7 +42,11 @@ export default function PokemonOverview() {
         })
       );
 
-      setPokemons((previous) => [...previous, ...detailedPokemons]);
+      setPokemons((previous) => {
+        const existingIds = new Set(previous.map((p) => p.id));
+        const newUniquePokemons = detailedPokemons.filter((pokemon) => !existingIds.has(pokemon.id));
+        return [...previous, ...newUniquePokemons];
+      });
       setNextUrl(data.next);
 
       const updatedTypes = new Set(types);
