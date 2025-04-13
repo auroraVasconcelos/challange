@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import Link from "next/link";
+import React, { useEffect, useState, useRef } from "react";
 import Spinner from "./Spinner";
 import PokemonCard from "./PokemonCard";
 import TypeFilter from "./TypeFilter";
@@ -25,37 +24,64 @@ export default function PokemonOverview() {
   const [loading, setLoading] = useState(true);
   const [selectedType, setSelectedType] = useState<string>("");
   const [types, setTypes] = useState<string[]>([]);
+  const [nextUrl, setNextUrl] = useState<string | null>("https://pokeapi.co/api/v2/pokemon?offset=0&limit=25");
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  const loadMorePokemons = async () => {
+    if(!nextUrl) return;
+    setIsFetchingMore(true);
+    try {
+      const response = await fetch(nextUrl);
+      const data = await response.json();
+
+      const detailedPokemons: Pokemon[] = await Promise.all(
+        data.results.map(async (pokemon: { url: string }) => {
+          const response = await fetch(pokemon.url);
+          return await response.json();
+        })
+      );
+
+      setPokemons((previous) => [...previous, ...detailedPokemons]);
+      setNextUrl(data.next);
+
+      const updatedTypes = new Set(types);
+      detailedPokemons.forEach((pokemon) => {
+      pokemon.types.forEach((t) => updatedTypes.add(t.type.name));
+    });
+    setTypes([...updatedTypes]);
+
+    } catch (err) {
+      console.error("Failed to fetch more pokemons", err);
+    }
+    
+    setIsFetchingMore(false);
+  };
 
   useEffect(() => {
-    const fetchPokemons = async () => {
-      try {
-        const response = await fetch("https://pokeapi.co/api/v2/pokemon?limit=50");
-        const data = await response.json();
+    if (pokemons.length === 0 && nextUrl) {
+      loadMorePokemons().then(() => setLoading(false));
+    }
+  }, []);
 
-        const detailedPokemons: Pokemon[] = await Promise.all(
-          data.results.map(async (pokemon: { url: string }) => {
-            const response = await fetch(pokemon.url);
-            return await response.json();
-          })
-        );
+  useEffect(() => {
+    if(!sentinelRef.current || !nextUrl) return;
 
-        setPokemons(detailedPokemons);
-        setLoading(false);
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !isFetchingMore) {
+        loadMorePokemons();
+      }
+    }, {threshold: 1.0});
 
-        const uniqueTypes = new Set<string>();
-        detailedPokemons.forEach((pokemon) => {
-          pokemon.types.forEach((type) => { uniqueTypes.add(type.type.name); });
-        });
+    observer.observe(sentinelRef.current);
 
-        setTypes([...uniqueTypes]);
-
-      } catch (err) {
-        console.error("Failed to fetch pokemons", err);
+    return () => {
+      if (sentinelRef.current) {
+        observer.unobserve(sentinelRef.current);
       }
     };
+  }, [sentinelRef.current, isFetchingMore, nextUrl]);
 
-    fetchPokemons();
-  }, []);
 
   const visiblePokemons = selectedType ? 
     pokemons.filter((pokemon) => pokemon.types.some((type) => type.type.name === selectedType)) : 
@@ -81,5 +107,12 @@ export default function PokemonOverview() {
             ></PokemonCard>
         ))}
       </div>
-  </div>
-)}
+
+      {nextUrl && (
+        <div ref={sentinelRef} className="w-full py-8 flex justify-center">
+          <div className="animate-spin h-6 w-6 border-2 border-t-black border-b-black rounded-full" />
+        </div>
+    )}
+    </div>
+  )
+}

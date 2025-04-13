@@ -8,7 +8,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({ types, selectedType, onChange }
   return (
     <div className="mb-6">
       {/* Mobile dropdown */}
-      <div className="block sm:hidden flex justify-center">
+      <div className="sm:hidden flex justify-center">
         <select
           value={selectedType}
           onChange={(e) => onChange(e.target.value)}
