@@ -1,3 +1,6 @@
+
+import typeEmoji from "@/lib/typeEmoji";
+
 interface TypeFilterProps {
   types: string[];
   selectedType: string;
@@ -17,7 +20,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({ types, selectedType, onChange }
           <option value="">All</option>
           {types.map((type) => (
             <option key={type} value={type}>
-              {type.charAt(0).toUpperCase() + type.slice(1)}
+               {typeEmoji[type] || ""} {type.charAt(0).toUpperCase() + type.slice(1)}
             </option>
           ))}
         </select>
@@ -55,7 +58,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({ types, selectedType, onChange }
               selectedType === type ? "bg-black text-white" : "bg-white text-black hover:bg-gray-100"
             }`}
           >
-            {type}
+            {typeEmoji[type] || ""} {type.charAt(0).toUpperCase() + type.slice(1)}
           </button>
         ))}
       </div>

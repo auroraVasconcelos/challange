@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "../styles/globals.css";
 
 export const metadata: Metadata = {
-  title: "Monster Overview",
-  description: "Filter and view pocket monsters",
+  title: "Pokemon App",
+  description: "A simple Pokemon app using Next.js and Tailwind CSS",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
