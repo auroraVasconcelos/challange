@@ -88,7 +88,7 @@ export default function PokemonOverview() {
     pokemons;
   
   if (loading) return <Spinner />;
-  console.log("Pokemons", pokemons);
+
   return (
     <div>
       <TypeFilter
