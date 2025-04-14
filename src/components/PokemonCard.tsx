@@ -20,7 +20,7 @@ const PokemonCard: React.FC<PokemonCardProps> = ({ id, name, image, types }) => 
           alt={name}
           width={96}
           height={96}
-          className="w-24 h-24 object-contain" />
+          className="object-contain" />
         <div className="border-t border-black dark:border-white w-full p-2 capitalize text-black dark:text-gray-400 flex flex-row justify-between">
           {name}
           <span className="flex items-center gap-1">

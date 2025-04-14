@@ -5,6 +5,8 @@ import Spinner from "./Spinner";
 import PokemonCard from "./PokemonCard";
 import TypeFilter from "./TypeFilter";
 import { fetchPokemonList, fetchPokemonDetails } from "@/lib/services/pokemonService";
+import { useCallback } from "react";
+
 interface Pokemon {
   id: number;
   name: string;
@@ -28,7 +30,7 @@ export default function PokemonOverview() {
   const [loadingMore, setLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  const loadMorePokemons = async () => {
+  const loadMorePokemons = useCallback(async () => {
     if(!nextUrl) return;
     setLoadingMore(true);
 
@@ -59,16 +61,17 @@ export default function PokemonOverview() {
     }
     
     setLoadingMore(false);
-  };
+  }, [nextUrl, types]);
 
   useEffect(() => {
     if (pokemons.length === 0 && nextUrl) {
       loadMorePokemons().then(() => setLoading(false));
     }
-  }, []);
+  }, [loadMorePokemons, pokemons.length, nextUrl]);
 
   useEffect(() => {
-    if(!sentinelRef.current || !nextUrl) return;
+    const currentSentinel = sentinelRef.current;
+    if(!currentSentinel || !nextUrl) return;
 
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting && !loadingMore) {
@@ -76,14 +79,14 @@ export default function PokemonOverview() {
       }
     }, {threshold: 1.0});
 
-    observer.observe(sentinelRef.current);
+    observer.observe(currentSentinel);
 
     return () => {
-      if (sentinelRef.current) {
-        observer.unobserve(sentinelRef.current);
+      if (currentSentinel) {
+        observer.unobserve(currentSentinel);
       }
     };
-  }, [sentinelRef.current, loadingMore, nextUrl]);
+  }, [loadMorePokemons, loadingMore, nextUrl]);
 
 
   const visiblePokemons =
