@@ -22,15 +22,15 @@ interface Pokemon {
 export default function PokemonOverview() {
   const [pokemons, setPokemons] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTypes, setSelectedTypes] = useState<string>("");
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [types, setTypes] = useState<string[]>([]);
   const [nextUrl, setNextUrl] = useState<string | null>("https://pokeapi.co/api/v2/pokemon?offset=0&limit=25");
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const loadMorePokemons = async () => {
     if(!nextUrl) return;
-    setIsFetchingMore(true);
+    setLoadingMore(true);
 
     try {
       const data = await fetchPokemonList(nextUrl);
@@ -58,7 +58,7 @@ export default function PokemonOverview() {
       console.error("Failed to fetch more pokemons", err);
     }
     
-    setIsFetchingMore(false);
+    setLoadingMore(false);
   };
 
   useEffect(() => {
@@ -71,7 +71,7 @@ export default function PokemonOverview() {
     if(!sentinelRef.current || !nextUrl) return;
 
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && !isFetchingMore) {
+      if (entries[0].isIntersecting && !loadingMore) {
         loadMorePokemons();
       }
     }, {threshold: 1.0});
@@ -83,14 +83,14 @@ export default function PokemonOverview() {
         observer.unobserve(sentinelRef.current);
       }
     };
-  }, [sentinelRef.current, isFetchingMore, nextUrl]);
+  }, [sentinelRef.current, loadingMore, nextUrl]);
 
 
   const visiblePokemons =
   selectedTypes.length > 0
     ? pokemons.filter((pokemon) =>
         selectedTypes.every((filterType) =>
-          pokemon.types.some((t) => t.type.name === filterType)
+          pokemon.types.some((type) => type.type.name === filterType)
         )
       )
     : pokemons;

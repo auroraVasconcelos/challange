@@ -4,7 +4,7 @@ import typeColorMap from "@/lib/typeColor";
 interface TypeFilterProps {
   types: string[];
   selectedTypes: string[];
-  onChange: (type: string) => void;
+  onChange: (type: string[]) => void;
 }
 
 const TypeFilter: React.FC<TypeFilterProps> = ({ types, selectedTypes, onChange }) => {
