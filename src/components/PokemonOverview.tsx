@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef } from "react";
 import Spinner from "./Spinner";
 import PokemonCard from "./PokemonCard";
 import TypeFilter from "./TypeFilter";
-
+import { fetchPokemonList, fetchPokemonDetails } from "@/lib/services/pokemonService";
 interface Pokemon {
   id: number;
   name: string;
@@ -31,19 +31,18 @@ export default function PokemonOverview() {
   const loadMorePokemons = async () => {
     if(!nextUrl) return;
     setIsFetchingMore(true);
+
     try {
-      const response = await fetch(nextUrl);
-      const data = await response.json();
+      const data = await fetchPokemonList(nextUrl);
 
       const detailedPokemons: Pokemon[] = await Promise.all(
         data.results.map(async (pokemon: { url: string }) => {
-          const response = await fetch(pokemon.url);
-          return await response.json();
+          return await fetchPokemonDetails(pokemon.url);
         })
       );
 
       setPokemons((previous) => {
-        const existingIds = new Set(previous.map((p) => p.id));
+        const existingIds = new Set(previous.map((previous) => previous.id));
         const newUniquePokemons = detailedPokemons.filter((pokemon) => !existingIds.has(pokemon.id));
         return [...previous, ...newUniquePokemons];
       });
@@ -51,7 +50,7 @@ export default function PokemonOverview() {
 
       const updatedTypes = new Set(types);
       detailedPokemons.forEach((pokemon) => {
-      pokemon.types.forEach((t) => updatedTypes.add(t.type.name));
+      pokemon.types.forEach((type) => updatedTypes.add(type.type.name));
     });
     setTypes([...updatedTypes]);
 
