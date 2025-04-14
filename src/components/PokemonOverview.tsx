@@ -22,7 +22,7 @@ interface Pokemon {
 export default function PokemonOverview() {
   const [pokemons, setPokemons] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedType, setSelectedType] = useState<string>("");
+  const [selectedTypes, setSelectedTypes] = useState<string>("");
   const [types, setTypes] = useState<string[]>([]);
   const [nextUrl, setNextUrl] = useState<string | null>("https://pokeapi.co/api/v2/pokemon?offset=0&limit=25");
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -87,9 +87,14 @@ export default function PokemonOverview() {
   }, [sentinelRef.current, isFetchingMore, nextUrl]);
 
 
-  const visiblePokemons = selectedType ? 
-    pokemons.filter((pokemon) => pokemon.types.some((type) => type.type.name === selectedType)) : 
-    pokemons;
+  const visiblePokemons =
+  selectedTypes.length > 0
+    ? pokemons.filter((pokemon) =>
+        selectedTypes.every((filterType) =>
+          pokemon.types.some((t) => t.type.name === filterType)
+        )
+      )
+    : pokemons;
   
   if (loading) return <Spinner />;
 
@@ -100,28 +105,33 @@ export default function PokemonOverview() {
         <p className="text-sm font-medium text-gray-500 mb-2">Type</p>
         <TypeFilter
           types={types}
-          selectedType={selectedType}
-          onChange={setSelectedType}>
+          selectedTypes={selectedTypes}
+          onChange={setSelectedTypes}>
         </TypeFilter>
       </aside>
 
-      <section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {visiblePokemons.map((pokemon) => (
-          <PokemonCard
-            key={`${pokemon.name}-${pokemon.id}`}
-            id={pokemon.id}
-            name={pokemon.name}
-            image={pokemon.sprites.other["official-artwork"].front_default || pokemon.sprites.front_default}
-            types={pokemon.types.map((type) => type.type.name)}
-            ></PokemonCard>
-        ))}
-      </section>
+      <section>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {visiblePokemons.map((pokemon) => (
+            <PokemonCard
+              key={`${pokemon.name}-${pokemon.id}`}
+              id={pokemon.id}
+              name={pokemon.name}
+              image={pokemon.sprites.other["official-artwork"].front_default || pokemon.sprites.front_default}
+              types={pokemon.types.map((type) => type.type.name)}
+              ></PokemonCard>
+          ))}
+          {visiblePokemons.length === 0 && <p className="col-span-full text-center text-gray-800 dark:text-gray-400 mt-8">
+            Oops! No Pokémon found. Try changing your filters.
+          </p>}
+        </div>
 
-      {nextUrl && (
+        {nextUrl && (
         <div ref={sentinelRef} className="w-full py-8 flex justify-center">
           <div className="animate-spin h-6 w-6 border-2 border-t-black border-b-black rounded-full" />
         </div>
-    )}
+        )}
+      </section>
     </div>
   )
 }
