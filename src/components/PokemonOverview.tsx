@@ -94,14 +94,18 @@ export default function PokemonOverview() {
   if (loading) return <Spinner />;
 
   return (
-    <div>
-      <TypeFilter
-        types={types}
-        selectedType={selectedType}
-        onChange={setSelectedType}>
-      </TypeFilter>
+    <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6">
+      <aside className="border p-4 bg-white dark:bg-gray-900">
+        <h2 className="font-bold mb-4">Filter</h2>
+        <p className="text-sm font-medium text-gray-500 mb-2">Type</p>
+        <TypeFilter
+          types={types}
+          selectedType={selectedType}
+          onChange={setSelectedType}>
+        </TypeFilter>
+      </aside>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {visiblePokemons.map((pokemon) => (
           <PokemonCard
             key={`${pokemon.name}-${pokemon.id}`}
@@ -111,7 +115,7 @@ export default function PokemonOverview() {
             types={pokemon.types.map((type) => type.type.name)}
             ></PokemonCard>
         ))}
-      </div>
+      </section>
 
       {nextUrl && (
         <div ref={sentinelRef} className="w-full py-8 flex justify-center">

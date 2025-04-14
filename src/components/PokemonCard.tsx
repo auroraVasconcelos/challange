@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import typeEmoji from "@/lib/typeEmoji";
+import typeColorMap from "@/lib/typeColor";
 
 interface PokemonCardProps {
   id: number;
@@ -12,16 +12,22 @@ interface PokemonCardProps {
 const PokemonCard: React.FC<PokemonCardProps> = ({ id, name, image, types }) => {
   return (
     <Link href={`/pokemon/${id}`}>
-      <div className="p-4 border rounded-lg shadow hover:scale-105 transition-transform flex flex-col items-center cursor-pointer bg-white">
-        <div className="text-xs text-gray-500 font-mono w-full flex justify-end">#{id.toString().padStart(3, "0")}</div>
+      <div className="pt-4 border border-black dark:border-white shadow hover:scale-105 transition-transform flex flex-col items-center cursor-pointer bg-white dark:bg-gray-900">
+        <div className="text-xs text-gray-500 font-mono w-full flex justify-end pr-4">#{id.toString().padStart(3, "0")}</div>
         <img src={image} alt={name} className="w-24 h-24 object-contain" />
-        <p className="capitalize font-semibold mt-2 flex text-center text-gray-800 dark:text-black">{name}
-          {types.map((type) => (
-            <span className="ml-2.5" key={type}>
-              {typeEmoji[type] || ""}
-            </span>
+        <div className="border-t border-black dark:border-white w-full p-2 capitalize text-black dark:text-gray-400 flex flex-row justify-between">
+          {name}
+          <span className="flex items-center gap-1">
+            {types.map((type) => (
+              <span
+              key={type}
+              className={`inline-block w-3 h-3 rounded-full`}
+              style={{ backgroundColor: typeColorMap[type] }}
+            >
+              </span>
           ))}
-        </p>
+          </span>
+        </div>
       </div>
     </Link>
   );
