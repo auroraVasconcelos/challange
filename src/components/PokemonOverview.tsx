@@ -4,6 +4,8 @@ import React, { useEffect, useState, useRef } from "react";
 import Spinner from "./Spinner";
 import PokemonCard from "./PokemonCard";
 import TypeFilter from "./TypeFilter";
+import { fetchPokemonList, fetchPokemonDetails } from "@/lib/services/pokemonService";
+import { useCallback } from "react";
 
 interface Pokemon {
   id: number;
@@ -22,28 +24,27 @@ interface Pokemon {
 export default function PokemonOverview() {
   const [pokemons, setPokemons] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedType, setSelectedType] = useState<string>("");
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [types, setTypes] = useState<string[]>([]);
   const [nextUrl, setNextUrl] = useState<string | null>("https://pokeapi.co/api/v2/pokemon?offset=0&limit=25");
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  const loadMorePokemons = async () => {
+  const loadMorePokemons = useCallback(async () => {
     if(!nextUrl) return;
-    setIsFetchingMore(true);
+    setLoadingMore(true);
+
     try {
-      const response = await fetch(nextUrl);
-      const data = await response.json();
+      const data = await fetchPokemonList(nextUrl);
 
       const detailedPokemons: Pokemon[] = await Promise.all(
         data.results.map(async (pokemon: { url: string }) => {
-          const response = await fetch(pokemon.url);
-          return await response.json();
+          return await fetchPokemonDetails(pokemon.url);
         })
       );
 
       setPokemons((previous) => {
-        const existingIds = new Set(previous.map((p) => p.id));
+        const existingIds = new Set(previous.map((previous) => previous.id));
         const newUniquePokemons = detailedPokemons.filter((pokemon) => !existingIds.has(pokemon.id));
         return [...previous, ...newUniquePokemons];
       });
@@ -51,7 +52,7 @@ export default function PokemonOverview() {
 
       const updatedTypes = new Set(types);
       detailedPokemons.forEach((pokemon) => {
-      pokemon.types.forEach((t) => updatedTypes.add(t.type.name));
+      pokemon.types.forEach((type) => updatedTypes.add(type.type.name));
     });
     setTypes([...updatedTypes]);
 
@@ -59,65 +60,80 @@ export default function PokemonOverview() {
       console.error("Failed to fetch more pokemons", err);
     }
     
-    setIsFetchingMore(false);
-  };
+    setLoadingMore(false);
+  }, [nextUrl, types]);
 
   useEffect(() => {
     if (pokemons.length === 0 && nextUrl) {
       loadMorePokemons().then(() => setLoading(false));
     }
-  }, []);
+  }, [loadMorePokemons, pokemons.length, nextUrl]);
 
   useEffect(() => {
-    if(!sentinelRef.current || !nextUrl) return;
+    const currentSentinel = sentinelRef.current;
+    if(!currentSentinel || !nextUrl) return;
 
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && !isFetchingMore) {
+      if (entries[0].isIntersecting && !loadingMore) {
         loadMorePokemons();
       }
     }, {threshold: 1.0});
 
-    observer.observe(sentinelRef.current);
+    observer.observe(currentSentinel);
 
     return () => {
-      if (sentinelRef.current) {
-        observer.unobserve(sentinelRef.current);
+      if (currentSentinel) {
+        observer.unobserve(currentSentinel);
       }
     };
-  }, [sentinelRef.current, isFetchingMore, nextUrl]);
+  }, [loadMorePokemons, loadingMore, nextUrl]);
 
 
-  const visiblePokemons = selectedType ? 
-    pokemons.filter((pokemon) => pokemon.types.some((type) => type.type.name === selectedType)) : 
-    pokemons;
+  const visiblePokemons =
+  selectedTypes.length > 0
+    ? pokemons.filter((pokemon) =>
+        selectedTypes.every((filterType) =>
+          pokemon.types.some((type) => type.type.name === filterType)
+        )
+      )
+    : pokemons;
   
   if (loading) return <Spinner />;
 
   return (
-    <div>
-      <TypeFilter
-        types={types}
-        selectedType={selectedType}
-        onChange={setSelectedType}>
-      </TypeFilter>
+    <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6">
+      <aside className="border p-4 bg-white dark:bg-gray-900">
+        <h2 className="font-bold mb-4">Filter</h2>
+        <p className="text-sm font-medium text-gray-500 mb-2">Type</p>
+        <TypeFilter
+          types={types}
+          selectedTypes={selectedTypes}
+          onChange={setSelectedTypes}>
+        </TypeFilter>
+      </aside>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {visiblePokemons.map((pokemon) => (
-          <PokemonCard
-            key={`${pokemon.name}-${pokemon.id}`}
-            id={pokemon.id}
-            name={pokemon.name}
-            image={pokemon.sprites.other["official-artwork"].front_default || pokemon.sprites.front_default}
-            types={pokemon.types.map((type) => type.type.name)}
-            ></PokemonCard>
-        ))}
-      </div>
+      <section>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {visiblePokemons.map((pokemon) => (
+            <PokemonCard
+              key={`${pokemon.name}-${pokemon.id}`}
+              id={pokemon.id}
+              name={pokemon.name}
+              image={pokemon.sprites.other["official-artwork"].front_default || pokemon.sprites.front_default}
+              types={pokemon.types.map((type) => type.type.name)}
+              ></PokemonCard>
+          ))}
+          {visiblePokemons.length === 0 && <p className="col-span-full text-center text-gray-800 dark:text-gray-400 mt-8">
+            Oops! No Pokémon found. Try changing your filters.
+          </p>}
+        </div>
 
-      {nextUrl && (
+        {nextUrl && (
         <div ref={sentinelRef} className="w-full py-8 flex justify-center">
           <div className="animate-spin h-6 w-6 border-2 border-t-black border-b-black rounded-full" />
         </div>
-    )}
+        )}
+      </section>
     </div>
   )
 }
